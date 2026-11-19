@@ -1,0 +1,15 @@
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+.DS_Store
+
+# Signing and private credentials
+*.p8
+*.p12
+*.mobileprovision
+ExportOptions.plist
