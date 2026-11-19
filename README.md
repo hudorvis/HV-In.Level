@@ -1,0 +1,27 @@
+# In.Level
+
+In.Level is a universal SwiftUI level, slope and angle-matching tool for iPhone and iPad.
+
+- Public app name: `In.Level`
+- Bundle identifier: `au.h-v.in.level`
+- Xcode project: `InLevel.xcodeproj`
+- Shared scheme: `InLevel`
+- Deployment target: iOS/iPadOS 17.0
+- Revision: `In.Level v26.11.19.01`
+
+The app uses Core Motion only. It has no external packages, network calls, analytics or advertising.
+
+
+Codemagic note: this revision reuses the existing team Apple Developer Portal/App Store Connect integration named `In.Sync`. The app is routed to the In.Level App Store Connect record by the signed bundle identifier `au.h-v.in.level`.
+
+## Measurement
+
+Calibrate stores a Level zero for the current face or edge. Set Reference captures one gravity measurement for Match and replaces the previous capture. Both survive relaunch. The app recognises the previous release’s saved calibration and Match settings on upgrade.
+
+For a flat transfer, point the same end of the phone in the same direction on both surfaces. The scope compares both tilt axes. Flat error is the angular separation of the two gravity vectors. On an edge, the signed error measures rotation about the captured edge axis. Match shows the saved target as a dashed ring and the live reading as a filled bubble. MATCHED uses the existing 0.05° tolerance and the number shows the measured residual to three decimals.
+
+Slope is 100 times the tangent of the displayed angle. In Match this is the slope corresponding to the angular error. Tap anywhere to leave full screen.
+
+## Build
+
+Extract the ZIP at the repository root. Open InLevel.xcodeproj and select the shared InLevel scheme. The Apple Developer App ID description is In Level. Codemagic assigns the build number and runs the measurement and persistence checks before signing.

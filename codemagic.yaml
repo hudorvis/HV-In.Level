@@ -1,0 +1,72 @@
+workflows:
+  in-level:
+    name: In.Level
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      # Reuse the existing Codemagic Apple Developer Portal/App Store Connect API-key integration created for In.Sync.
+      app_store_connect: In.Sync
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: au.h-v.in.level
+      vars:
+        BUNDLE_ID: "au.h-v.in.level"
+        XCODE_PROJECT: "InLevel.xcodeproj"
+        XCODE_SCHEME: "InLevel"
+      xcode: "26.4"
+    scripts:
+      - name: Confirm In.Level source revision
+        script: |
+          set -e
+          echo "Expected revision: In.Level v26.11.19.01"
+          test -f "$CM_BUILD_DIR/InLevel/ContentView.swift"
+          test -f "$CM_BUILD_DIR/InLevel/PrivacyInfo.xcprivacy"
+          test -d "$CM_BUILD_DIR/InLevel.xcodeproj"
+          grep -q "au.h-v.in.level" "$CM_BUILD_DIR/InLevel.xcodeproj/project.pbxproj"
+          echo "In.Level source revision confirmed."
+      - name: Check measurements and saved settings
+        script: |
+          set -eu
+          cd "$CM_BUILD_DIR"
+          xcrun --sdk macosx swiftc InLevel/Models.swift InLevel/LevelMath.swift Tests/LevelChecks.swift -o "$TMPDIR/inlevel-checks"
+          "$TMPDIR/inlevel-checks"
+      - name: Apply Apple signing files
+        script: xcode-project use-profiles
+      - name: Assign Codemagic build number
+        script: |
+          cd "$CM_BUILD_DIR"
+          agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build signed In.Level IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+      - name: Validate exported In.Level IPA
+        script: |
+          set -e
+          IPA_PATH=$(find "$CM_BUILD_DIR/build/ios/ipa" -name '*.ipa' -print -quit)
+          test -n "$IPA_PATH"
+          rm -rf /tmp/inlevel_ipa_check
+          mkdir -p /tmp/inlevel_ipa_check
+          unzip -q "$IPA_PATH" -d /tmp/inlevel_ipa_check
+          APP_PATH=$(find /tmp/inlevel_ipa_check/Payload -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+          EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")
+          test "$BUNDLE_ID" = "au.h-v.in.level"
+          test -n "$EXECUTABLE"
+          test -f "$APP_PATH/$EXECUTABLE"
+          echo "Bundle identifier: $BUNDLE_ID"
+          echo "Bundle executable: $EXECUTABLE"
+          echo "IPA preflight validation passed."
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false
