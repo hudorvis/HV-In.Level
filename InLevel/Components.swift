@@ -82,21 +82,48 @@ struct ReadingTextBlock: View {
     let full: Bool
 
     var body: some View {
-        VStack(spacing: 3) {
-            Text(reading.valueDegrees.map { slope ? LevelMath.slopeText($0) : LevelMath.degreesText($0) } ?? "—")
+        // Reserve room for the tallest readout so text changes cannot move the circle.
+        content(reservingSpace: true)
+            .hidden()
+            .accessibilityHidden(true)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .top) {
+                content(reservingSpace: false)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
+            }
+    }
+
+    private func content(reservingSpace: Bool) -> some View {
+        let valueDegrees = reservingSpace ? nil : reading.valueDegrees
+        let degrees = valueDegrees.map(LevelMath.degreesText)
+        let value = slope ? valueDegrees.map(LevelMath.slopeText) : degrees
+        let showStatus = mode == .match || reading.direction == nil
+        let reference = mode == .match && !reservingSpace ? reading.referenceDegrees : nil
+        let current = mode == .match && !reservingSpace && !full ? reading.currentDegrees : nil
+
+        return VStack(spacing: 3) {
+            Text(reservingSpace ? "0.000°" : (value ?? "—"))
                 .font(.system(size: size, weight: .light, design: .rounded)).foregroundStyle(palette.right)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.45)
-            if slope, let value = reading.valueDegrees {
-                Text(LevelMath.degreesText(value)).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+            if let secondary = reservingSpace ? "0.000°" : (slope ? degrees : nil) {
+                Text(secondary).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
             }
-            Text(reading.status.uppercased()).font(.system(size: min(18, size * 0.32), weight: .semibold))
-                .tracking(0.8).foregroundStyle(reading.valueDegrees == nil ? Color.secondary : palette.right)
-            if mode == .match {
+            if reservingSpace || showStatus {
+                Text(reservingSpace ? "MATCH ERROR" : reading.status.uppercased())
+                    .font(.system(size: min(18, size * 0.32), weight: .semibold))
+                    .tracking(0.8).foregroundStyle(reading.valueDegrees == nil ? Color.secondary : palette.right)
+            }
+            if reservingSpace || reference != nil || current != nil {
                 HStack(spacing: 12) {
-                    if let ref = reading.referenceDegrees { Text("REF " + LevelMath.degreesText(ref)) }
-                    if !full, let current = reading.currentDegrees { Text("LIVE " + LevelMath.degreesText(current)) }
+                    if let ref = reservingSpace ? "0.000°" : reference.map(LevelMath.degreesText) {
+                        Text("REF " + ref)
+                    }
+                    if !full, let live = reservingSpace ? "0.000°" : current.map(LevelMath.degreesText) {
+                        Text("LIVE " + live)
+                    }
                 }.font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
-        }.lineLimit(1).minimumScaleFactor(0.7).accessibilityElement(children: .combine)
+        }.lineLimit(1).minimumScaleFactor(0.7)
     }
 }
