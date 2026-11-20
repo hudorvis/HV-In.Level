@@ -7,7 +7,7 @@ In.Level is a universal SwiftUI level, slope and angle-matching tool for iPhone 
 - Xcode project: `InLevel.xcodeproj`
 - Shared scheme: `InLevel`
 - Deployment target: iOS/iPadOS 17.0
-- Revision: `In.Level v26.11.19.01`
+- Revision: `In.Level v26.11.20.01`
 
 The app uses Core Motion only. It has no external packages, network calls, analytics or advertising.
 
@@ -25,3 +25,5 @@ Slope is 100 times the tangent of the displayed angle. In Match this is the slop
 ## Build
 
 Extract the ZIP at the repository root. Open InLevel.xcodeproj and select the shared InLevel scheme. The Apple Developer App ID description is In Level. Codemagic assigns the build number and runs the measurement and persistence checks before signing.
+
+GitHub Actions checks pushes and pull requests to `main` by running the regression tests and building the iOS app with Xcode. For a signed IPA, open this project in Codemagic, select **Start new build**, choose branch `main` and workflow **In.Level** (`in-level`), then start the build.
