@@ -74,7 +74,7 @@ enum ContactPose: String, CaseIterable, Codable {
         switch self {
         case .faceUp: return "Place Face Up"
         case .faceDown: return "Place Face Down"
-        default: return "Place On Edge"
+        default: return ""
         }
     }
 }
@@ -121,6 +121,9 @@ final class LevelSettings {
     private(set) var legacy: [ContactPose: Measurement] = [:]
     private(set) var reference: Measurement?
     private let matchKey = "inlevel.match.capture.v2"
+    private let zeroKeyPrefix = "inlevel.zero."
+    private let zeroResetKey = "inlevel.zero.didReset"
+    private let legacyMatchGroups = ["Flat", "PortraitEdge", "LandscapeEdge"]
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -131,6 +134,7 @@ final class LevelSettings {
             return Measurement(pose: m.pose, gravity: g)
         }
         reference = restored(matchKey)
+        let includeLegacyCalibration = !defaults.bool(forKey: zeroResetKey)
         for pose in ContactPose.allCases {
             let group = pose.isFlat ? "Flat" : (pose == .bottom || pose == .top ? "PortraitEdge" : "LandscapeEdge")
             func oldGravity(match: Bool) -> Gravity {
@@ -145,7 +149,8 @@ final class LevelSettings {
                 let p = pose.downAxis.scaled(cos(r)) + pose.rightAxis.scaled(sin(r))
                 return Gravity(x: p.x, y: p.y, z: 0)
             }
-            zeros[pose] = restored("inlevel.zero." + pose.rawValue)?.gravity ?? oldGravity(match: false).unit
+            zeros[pose] = restored(zeroKeyPrefix + pose.rawValue)?.gravity
+                ?? (includeLegacyCalibration ? oldGravity(match: false).unit : nil)
             if defaults.bool(forKey: "match" + group + "Saved"), let g = oldGravity(match: true).unit {
                 legacy[pose] = Measurement(pose: pose, gravity: g)
             }
@@ -158,8 +163,26 @@ final class LevelSettings {
             defaults.set(data, forKey: matchKey)
             reference = sample
         } else {
-            defaults.set(data, forKey: "inlevel.zero." + sample.pose.rawValue)
+            defaults.set(data, forKey: zeroKeyPrefix + sample.pose.rawValue)
             zeros[sample.pose] = sample.gravity
         }
+    }
+
+    func resetCalibration() {
+        // Legacy Match captures still read the original offsets to recover their reference angles.
+        defaults.set(true, forKey: zeroResetKey)
+        for pose in ContactPose.allCases {
+            defaults.removeObject(forKey: zeroKeyPrefix + pose.rawValue)
+        }
+        zeros.removeAll()
+    }
+
+    func resetReference() {
+        defaults.removeObject(forKey: matchKey)
+        for group in legacyMatchGroups {
+            defaults.removeObject(forKey: "match" + group + "Saved")
+        }
+        reference = nil
+        legacy.removeAll()
     }
 }

@@ -39,6 +39,12 @@ final class MotionLevelManager: ObservableObject {
         settings.save(sample, mode: mode)
     }
 
+    func reset(_ mode: MainMode) {
+        objectWillChange.send()
+        if mode == .level { settings.resetCalibration() }
+        else { settings.resetReference() }
+    }
+
     func reading(for mode: MainMode) -> LevelReading {
         guard let sample else { return .waiting }
         let screen: ScreenOrientation

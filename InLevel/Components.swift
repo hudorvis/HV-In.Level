@@ -50,13 +50,24 @@ struct BottomJoinedControl: View {
     let available: Bool
     let palette: PaletteChoice
     let capture: () -> Void
-    let fullScreen: () -> Void
+    let reset: () -> Void
+    @State private var confirmReset = false
+
     var body: some View {
         HStack(spacing: 0) {
-            action(mode == .level ? "Calibrate" : "Set Reference", "scope", palette.left, capture)
+            action(mode == .level ? "Calibrate" : "Reference", "scope", palette.left, capture)
                 .disabled(!available).opacity(available ? 1 : 0.45)
             Rectangle().fill(.white.opacity(0.14)).frame(width: 1, height: compact ? 26 : 34)
-            action("Full Screen", "arrow.up.left.and.arrow.down.right", .white, fullScreen)
+            action("Reset", "arrow.counterclockwise", .white) { confirmReset = true }
+                .confirmationDialog(mode == .level ? "Reset Calibration?" : "Reset Reference?",
+                                    isPresented: $confirmReset, titleVisibility: .visible) {
+                    Button("Reset", role: .destructive, action: reset)
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text(mode == .level
+                         ? "Restore the phone’s default Level position for all orientations."
+                         : "Clear the saved Match reference.")
+                }
         }.font(.system(size: compact ? 13 : (expanded ? 17 : 15), weight: .medium))
             .foregroundStyle(.white.opacity(0.88)).frame(height: compact ? 48 : (expanded ? 72 : 65))
             .padding(.horizontal, compact ? 8 : 10).background(Capsule().fill(.white.opacity(0.055)))
@@ -98,7 +109,7 @@ struct ReadingTextBlock: View {
         let valueDegrees = reservingSpace ? nil : reading.valueDegrees
         let degrees = valueDegrees.map(LevelMath.degreesText)
         let value = slope ? valueDegrees.map(LevelMath.slopeText) : degrees
-        let showStatus = mode == .match || reading.direction == nil
+        let showStatus = !reading.status.isEmpty && (mode == .match || reading.direction == nil)
         let reference = mode == .match && !reservingSpace ? reading.referenceDegrees : nil
         let current = mode == .match && !reservingSpace && !full ? reading.currentDegrees : nil
 

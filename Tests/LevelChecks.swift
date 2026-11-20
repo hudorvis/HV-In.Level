@@ -61,6 +61,24 @@ enum LevelChecks {
         }
         store.save(f, mode: .match)
         precondition(LevelSettings(defaults: defaults).reference?.pose == .faceUp)
+
+        store.resetCalibration()
+        precondition(store.zeros.isEmpty)
+        let reset = LevelSettings(defaults: defaults)
+        precondition(reset.zeros.isEmpty && reset.reference == store.reference && reset.legacy == store.legacy)
+        close(LevelMath.level(b, zero: reset.zeros[b.pose], screen: .portrait).valueDegrees, 5.475)
+        reset.save(b, mode: .level)
+        let recalibrated = LevelSettings(defaults: defaults)
+        precondition(recalibrated.zeros.count == 1)
+        close(LevelMath.level(b, zero: recalibrated.zeros[b.pose], screen: .portrait).valueDegrees, 0)
+        precondition(LevelMath.match(f, reference: a, screen: .portrait).status.isEmpty)
+
+        recalibrated.resetReference()
+        let clearedReference = LevelSettings(defaults: defaults)
+        precondition(recalibrated.reference == nil && recalibrated.legacy.isEmpty)
+        precondition(clearedReference.reference == nil && clearedReference.legacy.isEmpty)
+        precondition(clearedReference.zeros == recalibrated.zeros)
+
         print("Level and Match regression checks passed.")
     }
 }

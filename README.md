@@ -7,7 +7,7 @@ In.Level is a universal SwiftUI level, slope and angle-matching tool for iPhone 
 - Xcode project: `InLevel.xcodeproj`
 - Shared scheme: `InLevel`
 - Deployment target: iOS/iPadOS 17.0
-- Revision: `In.Level v26.11.20.02`
+- Revision: `In.Level v26.11.20.03`
 
 The app uses Core Motion only. It has no external packages, network calls, analytics or advertising.
 
@@ -16,11 +16,11 @@ Codemagic note: this revision reuses the existing team Apple Developer Portal/Ap
 
 ## Measurement
 
-Calibrate stores a Level zero for the current face or edge. Set Reference captures one gravity measurement for Match and replaces the previous capture. Both survive relaunch. The app recognises the previous release’s saved calibration and Match settings on upgrade.
+Calibrate stores a Level zero for the current face or edge. Reset in Level restores the phone’s default Level position for all orientations. Reference in Match captures a gravity measurement, and Reset in Match clears it. Saved offsets and captures survive relaunch. The app recognises the previous release’s saved calibration and Match settings on upgrade.
 
 For a flat transfer, point the same end of the phone in the same direction on both surfaces. The scope compares both tilt axes. Flat error is the angular separation of the two gravity vectors. On an edge, the signed error measures rotation about the captured edge axis. Match shows the saved target as a dashed ring and the live reading as a filled bubble. MATCHED uses the existing 0.05° tolerance and the number shows the measured residual to three decimals.
 
-Slope is 100 times the tangent of the displayed angle. In Match this is the slope corresponding to the angular error. Tap anywhere to leave full screen.
+Slope is 100 times the tangent of the displayed angle. In Match this is the slope corresponding to the angular error. Tap the instrument or the area around it to enter full screen. Tap again to bring back the controls.
 
 ## Build
 

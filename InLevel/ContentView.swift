@@ -34,7 +34,7 @@ struct ContentView: View {
                         }.padding(.top, 4)
                             .frame(width: size.width >= 1000 && size.height >= 650 ? min(max(size.width * 0.28, 330), 420) : min(max(size.width * 0.30, 250), 292))
                         Rectangle().fill(.white.opacity(0.08)).frame(width: 1).padding(.vertical, 18)
-                        InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette).padding(5)
+                        interactiveInstrument(reading).padding(5)
                     }.padding(.horizontal, 8)
                 } else {
                     let minHeight: CGFloat = tab == .colours ? 524 : 475
@@ -58,9 +58,21 @@ struct ContentView: View {
     private func portrait(_ reading: LevelReading, _ expanded: Bool) -> some View {
         VStack(spacing: 0) {
             header(expanded)
-            InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette).padding(.horizontal, 8).padding(.vertical, 8)
+            interactiveInstrument(reading).padding(8)
             bottom(false, expanded).frame(maxWidth: expanded ? 720 : 620).padding(.horizontal, 24).padding(.bottom, 22)
         }
+    }
+
+    private func interactiveInstrument(_ reading: LevelReading) -> some View {
+        InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: enterFullScreen)
+            .accessibilityAction(named: Text("Full Screen"), enterFullScreen)
+    }
+
+    private func enterFullScreen() {
+        notice = nil
+        full = true
     }
 
     private func header(_ expanded: Bool) -> some View {
@@ -80,14 +92,21 @@ struct ContentView: View {
     private func bottom(_ compact: Bool, _ expanded: Bool) -> some View {
         BottomJoinedControl(mode: mode, compact: compact, expanded: expanded, available: motion.sample != nil, palette: palette) {
             motion.capture(mode)
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            notice = mode == .level ? "Level Calibrated" : "Reference Saved"
-            dismissal?.cancel()
-            dismissal = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.35))
-                if !Task.isCancelled { notice = nil }
-            }
-        } fullScreen: { notice = nil; full = true }
+            showNotice(mode == .level ? "Level Calibrated" : "Reference Saved")
+        } reset: {
+            motion.reset(mode)
+            showNotice(mode == .level ? "Calibration Reset" : "Reference Reset")
+        }
+    }
+
+    private func showNotice(_ message: String) {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        notice = message
+        dismissal?.cancel()
+        dismissal = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.35))
+            if !Task.isCancelled { notice = nil }
+        }
     }
 }
 

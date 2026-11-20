@@ -132,7 +132,7 @@ enum LevelMath {
         guard let reference, let ref, compatible else {
             return LevelReading(pose: sample.pose, valueDegrees: nil, currentDegrees: current, referenceDegrees: ref,
                                 live: live, target: nil, direction: nil, railAxis: axis,
-                                status: reference?.pose.placementPrompt ?? "Set Reference")
+                                status: reference?.pose.placementPrompt ?? "Reference Needed")
         }
 
         let error: Double
