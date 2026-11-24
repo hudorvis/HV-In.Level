@@ -7,7 +7,7 @@ In.Level is a universal SwiftUI level, slope and angle-matching tool for iPhone 
 - Xcode project: `InLevel.xcodeproj`
 - Shared scheme: `InLevel`
 - Deployment target: iOS/iPadOS 17.0
-- Revision: `In.Level v26.11.24.03`
+- Revision: `In.Level v26.11.24.04`
 
 The app uses Core Motion only. It has no external packages, network calls, analytics or advertising.
 
@@ -30,4 +30,4 @@ GitHub Actions checks pushes and pull requests to `main` by running the regressi
 
 ## App Store screenshots
 
-The GitHub workflow captures Level and Match in portrait on the iPhone 17 Pro Max (1320 × 2868) and the 13-inch iPad Pro (2064 × 2752). Download `In.Level-App-Store-Screenshots` from the workflow run and upload the PNGs to the corresponding iPhone and iPad sections in App Store Connect.
+The GitHub workflow captures Level and Match in portrait on the iPhone 17 Pro Max (1320 × 2868) and the 13-inch iPad Pro (2064 × 2752). Download `In.Level-App-Store-Screenshots` from the workflow run and upload the JPEGs to the corresponding iPhone and iPad sections in App Store Connect.

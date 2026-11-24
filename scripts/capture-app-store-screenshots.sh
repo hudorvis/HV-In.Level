@@ -61,7 +61,7 @@ app="$scratch/build/Build/Products/Debug-iphonesimulator/In.Level.app"
 test -d "$app"
 
 capture_device() {
-    local type=$1 folder=$2 width=$3 height=$4 mode screenshot pixels
+    local type=$1 folder=$2 width=$3 height=$4 mode screenshot properties pixels
     active_device=$(xcrun simctl create "In.Level $folder" "$type" "$runtime")
     xcrun simctl boot "$active_device"
     xcrun simctl bootstatus "$active_device" -b
@@ -75,14 +75,19 @@ capture_device() {
         SIMCTL_CHILD_INLEVEL_SCREENSHOT_MODE="$mode" \
             xcrun simctl launch --terminate-running-process "$active_device" "$bundle_id"
         sleep 4
-        screenshot="$output_dir/$folder/In.Level-$mode.png"
-        xcrun simctl io "$active_device" screenshot --type=png "$screenshot"
-        pixels=$(sips -g pixelWidth -g pixelHeight "$screenshot" | awk '/pixelWidth:/{w=$2} /pixelHeight:/{print w "x" $2}')
+        screenshot="$output_dir/$folder/In.Level-$mode.jpg"
+        xcrun simctl io "$active_device" screenshot --type=jpeg "$screenshot"
+        properties=$(sips -g pixelWidth -g pixelHeight -g hasAlpha "$screenshot")
+        pixels=$(awk '/pixelWidth:/{w=$2} /pixelHeight:/{print w "x" $2}' <<< "$properties")
         if [[ "$pixels" != "${width}x${height}" ]]; then
             echo "$screenshot is $pixels, expected ${width}x${height}" >&2
             return 1
         fi
-        echo "$screenshot verified at $pixels"
+        if [[ "$(awk '/hasAlpha:/{print $2}' <<< "$properties")" != no ]]; then
+            echo "$screenshot must have no alpha channel" >&2
+            return 1
+        fi
+        echo "$screenshot verified at $pixels with no alpha channel"
     done
     xcrun simctl shutdown "$active_device"
     xcrun simctl delete "$active_device"
