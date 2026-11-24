@@ -49,7 +49,7 @@ else:
 PY
 }
 
-iphone=$(device_type "iPhone 17 Pro Max")
+iphone=$(device_type "iPhone 17 Pro" "iPhone 16 Pro")
 ipad=$(device_type "iPad Pro 13-inch (M5)" "iPad Pro 13-inch (M4)")
 
 xcodebuild build -quiet \
@@ -61,7 +61,7 @@ app="$scratch/build/Build/Products/Debug-iphonesimulator/In.Level.app"
 test -d "$app"
 
 capture_device() {
-    local type=$1 folder=$2 width=$3 height=$4 mode screenshot properties pixels
+    local type=$1 folder=$2 width=$3 height=$4 capture scene screenshot properties pixels
     active_device=$(xcrun simctl create "In.Level $folder" "$type" "$runtime")
     xcrun simctl boot "$active_device"
     xcrun simctl bootstatus "$active_device" -b
@@ -71,11 +71,12 @@ capture_device() {
     xcrun simctl install "$active_device" "$app"
 
     mkdir -p "$output_dir/$folder"
-    for mode in Level Match; do
-        SIMCTL_CHILD_INLEVEL_SCREENSHOT_MODE="$mode" \
+    for capture in 01-level 02-slope 03-match 04-colours 05-full-screen; do
+        scene=${capture#*-}
+        SIMCTL_CHILD_INLEVEL_SCREENSHOT_SCENE="$scene" \
             xcrun simctl launch --terminate-running-process "$active_device" "$bundle_id"
         sleep 4
-        screenshot="$output_dir/$folder/In.Level-$mode.jpg"
+        screenshot="$output_dir/$folder/$capture.jpg"
         xcrun simctl io "$active_device" screenshot --type=jpeg "$screenshot"
         properties=$(sips -g pixelWidth -g pixelHeight -g hasAlpha "$screenshot")
         pixels=$(awk '/pixelWidth:/{w=$2} /pixelHeight:/{print w "x" $2}' <<< "$properties")
@@ -94,5 +95,5 @@ capture_device() {
     active_device=
 }
 
-capture_device "$iphone" iPhone 1320 2868
+capture_device "$iphone" iPhone 1206 2622
 capture_device "$ipad" iPad 2064 2752

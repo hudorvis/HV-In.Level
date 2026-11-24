@@ -13,8 +13,18 @@ struct ContentView: View {
 
     init() {
 #if targetEnvironment(simulator) && DEBUG
-        if let mode = MotionLevelManager.screenshotMode {
-            _mode = State(initialValue: mode)
+        switch MotionLevelManager.screenshotScene {
+        case .level, nil:
+            break
+        case .slope:
+            _tab = State(initialValue: .slope)
+            _slope = State(initialValue: true)
+        case .match:
+            _mode = State(initialValue: .match)
+        case .colours:
+            _tab = State(initialValue: .colours)
+        case .fullScreen:
+            _full = State(initialValue: true)
         }
 #endif
     }

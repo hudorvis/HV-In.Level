@@ -13,9 +13,14 @@ final class MotionLevelManager: ObservableObject {
     weak var scene: UIWindowScene?
 
 #if targetEnvironment(simulator) && DEBUG
-    static let screenshotMode: MainMode? = {
-        guard let value = ProcessInfo.processInfo.environment["INLEVEL_SCREENSHOT_MODE"] else { return nil }
-        return MainMode(rawValue: value)
+    enum ScreenshotScene: String {
+        case level, slope, match, colours
+        case fullScreen = "full-screen"
+    }
+
+    static let screenshotScene: ScreenshotScene? = {
+        guard let value = ProcessInfo.processInfo.environment["INLEVEL_SCREENSHOT_SCENE"] else { return nil }
+        return ScreenshotScene(rawValue: value)
     }()
 
     private static func screenshotSample(_ degrees: Double) -> Measurement {
@@ -26,7 +31,7 @@ final class MotionLevelManager: ObservableObject {
 
     func start() {
 #if targetEnvironment(simulator) && DEBUG
-        if Self.screenshotMode != nil {
+        if Self.screenshotScene != nil {
             sample = Self.screenshotSample(2.65)
             return
         }
@@ -74,7 +79,7 @@ final class MotionLevelManager: ObservableObject {
         }
         if mode == .level { return LevelMath.level(sample, zero: settings.zeros[sample.pose], screen: screen) }
 #if targetEnvironment(simulator) && DEBUG
-        if Self.screenshotMode != nil {
+        if Self.screenshotScene != nil {
             return LevelMath.match(sample, reference: Self.screenshotSample(1.85), screen: screen)
         }
 #endif
