@@ -12,7 +12,25 @@ final class MotionLevelManager: ObservableObject {
     private let settings = LevelSettings()
     weak var scene: UIWindowScene?
 
+#if targetEnvironment(simulator) && DEBUG
+    static let screenshotMode: MainMode? = {
+        guard let value = ProcessInfo.processInfo.environment["INLEVEL_SCREENSHOT_MODE"] else { return nil }
+        return MainMode(rawValue: value)
+    }()
+
+    private static func screenshotSample(_ degrees: Double) -> Measurement {
+        let angle = LevelMath.degreesToRadians(degrees)
+        return Measurement(pose: .faceUp, gravity: Gravity(x: -sin(angle), y: 0, z: -cos(angle)))
+    }
+#endif
+
     func start() {
+#if targetEnvironment(simulator) && DEBUG
+        if Self.screenshotMode != nil {
+            sample = Self.screenshotSample(2.65)
+            return
+        }
+#endif
         guard manager.isDeviceMotionAvailable, !manager.isDeviceMotionActive else { return }
         manager.deviceMotionUpdateInterval = 1 / 60
         let session = generation
@@ -55,6 +73,11 @@ final class MotionLevelManager: ObservableObject {
         default: screen = .portrait
         }
         if mode == .level { return LevelMath.level(sample, zero: settings.zeros[sample.pose], screen: screen) }
+#if targetEnvironment(simulator) && DEBUG
+        if Self.screenshotMode != nil {
+            return LevelMath.match(sample, reference: Self.screenshotSample(1.85), screen: screen)
+        }
+#endif
         return LevelMath.match(sample, reference: settings.reference ?? settings.legacy[sample.pose], screen: screen)
     }
 }

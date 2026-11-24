@@ -11,6 +11,14 @@ struct ContentView: View {
     @State private var dismissal: Task<Void, Never>?
     @AppStorage("paletteChoice") private var palette = PaletteChoice.yellowGreen
 
+    init() {
+#if targetEnvironment(simulator) && DEBUG
+        if let mode = MotionLevelManager.screenshotMode {
+            _mode = State(initialValue: mode)
+        }
+#endif
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size

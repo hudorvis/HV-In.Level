@@ -31,3 +31,13 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture App Store screenshots
+        run: bash scripts/capture-app-store-screenshots.sh "$RUNNER_TEMP/InLevelScreenshots"
+
+      - name: Upload App Store screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: In.Level-App-Store-Screenshots
+          path: ${{ runner.temp }}/InLevelScreenshots/
+          if-no-files-found: error

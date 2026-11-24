@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+output_dir=$1
+scratch=$(mktemp -d)
+active_device=
+bundle_id=au.h-v.in.level
+
+cleanup() {
+    if [[ -n "$active_device" ]]; then
+        xcrun simctl shutdown "$active_device" || true
+        xcrun simctl delete "$active_device" || true
+    fi
+    rm -rf -- "$scratch"
+}
+trap cleanup EXIT
+
+xcrun simctl list runtimes --json > "$scratch/runtimes.json"
+runtime=$(python3 - "$scratch/runtimes.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as manifest:
+    runtimes = [
+        item for item in json.load(manifest)["runtimes"]
+        if item["isAvailable"] and item["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+    ]
+if not runtimes:
+    sys.exit("No installed iOS Simulator runtime can capture screenshots.")
+latest = max(runtimes, key=lambda item: tuple(map(int, item["version"].split("."))))
+print(latest["identifier"])
+PY
+)
+
+xcodebuild build -quiet \
+    -project InLevel.xcodeproj -scheme InLevel -configuration Debug \
+    -destination 'generic/platform=iOS Simulator' \
+    -derivedDataPath "$scratch/build" CODE_SIGNING_ALLOWED=NO
+
+app="$scratch/build/Build/Products/Debug-iphonesimulator/In.Level.app"
+test -d "$app"
+
+capture_device() {
+    local type=$1 folder=$2 width=$3 height=$4 mode screenshot pixels
+    active_device=$(xcrun simctl create "In.Level $folder" "$type" "$runtime")
+    xcrun simctl boot "$active_device"
+    xcrun simctl bootstatus "$active_device" -b
+    xcrun simctl status_bar "$active_device" override --time '9:41' \
+        --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 \
+        --batteryState unplugged --batteryLevel 100
+    xcrun simctl install "$active_device" "$app"
+
+    mkdir -p "$output_dir/$folder"
+    for mode in Level Match; do
+        SIMCTL_CHILD_INLEVEL_SCREENSHOT_MODE="$mode" \
+            xcrun simctl launch --terminate-running-process "$active_device" "$bundle_id"
+        sleep 4
+        screenshot="$output_dir/$folder/In.Level-$mode.png"
+        xcrun simctl io "$active_device" screenshot --type=png "$screenshot"
+        pixels=$(sips -g pixelWidth -g pixelHeight "$screenshot" | awk '/pixelWidth:/{w=$2} /pixelHeight:/{print w "x" $2}')
+        if [[ "$pixels" != "${width}x${height}" ]]; then
+            echo "$screenshot is $pixels, expected ${width}x${height}" >&2
+            return 1
+        fi
+        echo "$screenshot verified at $pixels"
+    done
+    xcrun simctl shutdown "$active_device"
+    xcrun simctl delete "$active_device"
+    active_device=
+}
+
+capture_device com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max iPhone 1320 2868
+capture_device com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5 iPad 2064 2752
