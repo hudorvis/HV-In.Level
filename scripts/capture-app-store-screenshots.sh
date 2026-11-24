@@ -47,7 +47,7 @@ capture_device() {
     xcrun simctl bootstatus "$active_device" -b
     xcrun simctl status_bar "$active_device" override --time '9:41' \
         --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 \
-        --batteryState unplugged --batteryLevel 100
+        --batteryState discharging --batteryLevel 100
     xcrun simctl install "$active_device" "$app"
 
     mkdir -p "$output_dir/$folder"
