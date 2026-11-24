@@ -14,12 +14,12 @@ workflows:
         BUNDLE_ID: "au.h-v.in.level"
         XCODE_PROJECT: "InLevel.xcodeproj"
         XCODE_SCHEME: "InLevel"
-      xcode: "26.4"
+      xcode: "27.0"
     scripts:
       - name: Confirm In.Level source revision
         script: |
           set -e
-          echo "Expected revision: In.Level v26.11.24.05"
+          echo "Expected revision: In.Level v26.11.24.06"
           test -f "$CM_BUILD_DIR/InLevel/ContentView.swift"
           test -f "$CM_BUILD_DIR/InLevel/PrivacyInfo.xcprivacy"
           test -d "$CM_BUILD_DIR/InLevel.xcodeproj"
