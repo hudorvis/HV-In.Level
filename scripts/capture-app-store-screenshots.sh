@@ -59,6 +59,26 @@ xcodebuild build -quiet \
 
 app="$scratch/build/Build/Products/Debug-iphonesimulator/In.Level.app"
 test -d "$app"
+xcrun --sdk macosx swiftc scripts/check-screenshot-banner.swift -o "$scratch/check-screenshot-banner"
+
+take_screenshot() {
+    local destination=$1 attempt result
+    for attempt in 1 2 3 4 5 6; do
+        xcrun simctl io "$active_device" screenshot --type=jpeg "$destination"
+        if "$scratch/check-screenshot-banner" "$destination"; then
+            return 0
+        else
+            result=$?
+        fi
+        if [[ "$result" != 3 ]]; then
+            return "$result"
+        fi
+        echo "Simulator banner detected in $destination (attempt $attempt)."
+        sleep 5
+    done
+    echo "Simulator banner did not clear for $destination." >&2
+    return 1
+}
 
 capture_device() {
     local type=$1 folder=$2 width=$3 height=$4 capture scene screenshot properties pixels
@@ -77,7 +97,7 @@ capture_device() {
             xcrun simctl launch --terminate-running-process "$active_device" "$bundle_id"
         sleep 4
         screenshot="$output_dir/$folder/$capture.jpg"
-        xcrun simctl io "$active_device" screenshot --type=jpeg "$screenshot"
+        take_screenshot "$screenshot"
         properties=$(sips -g pixelWidth -g pixelHeight -g hasAlpha "$screenshot")
         pixels=$(awk '/pixelWidth:/{w=$2} /pixelHeight:/{print w "x" $2}' <<< "$properties")
         if [[ "$pixels" != "${width}x${height}" ]]; then

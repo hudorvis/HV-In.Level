@@ -7,7 +7,7 @@ In.Level is a universal SwiftUI level, slope and angle-matching tool for iPhone 
 - Xcode project: `InLevel.xcodeproj`
 - Shared scheme: `InLevel`
 - Deployment target: iOS/iPadOS 17.0
-- Revision: `In.Level v26.11.24.06`
+- Revision: `In.Level v26.11.24.07`
 
 The app uses Core Motion only. It has no external packages, network calls, analytics or advertising.
 
