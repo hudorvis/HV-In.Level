@@ -33,6 +33,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       - name: Capture App Store screenshots
+        timeout-minutes: 35
         run: bash scripts/capture-app-store-screenshots.sh "$RUNNER_TEMP/InLevelScreenshots"
 
       - name: Upload App Store screenshots

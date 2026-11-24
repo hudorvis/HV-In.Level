@@ -16,6 +16,7 @@ cleanup() {
 trap cleanup EXIT
 
 xcrun simctl list runtimes --json > "$scratch/runtimes.json"
+xcrun simctl list devicetypes --json > "$scratch/device-types.json"
 runtime=$(python3 - "$scratch/runtimes.json" <<'PY'
 import json
 import sys
@@ -31,6 +32,25 @@ latest = max(runtimes, key=lambda item: tuple(map(int, item["version"].split("."
 print(latest["identifier"])
 PY
 )
+
+device_type() {
+    python3 - "$scratch/device-types.json" "$@" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as manifest:
+    devices = {item["name"]: item["identifier"] for item in json.load(manifest)["devicetypes"]}
+for name in sys.argv[2:]:
+    if name in devices:
+        print(devices[name])
+        break
+else:
+    sys.exit("Expected simulator device types unavailable: " + ", ".join(sys.argv[2:]))
+PY
+}
+
+iphone=$(device_type "iPhone 17 Pro Max")
+ipad=$(device_type "iPad Pro 13-inch (M5)" "iPad Pro 13-inch (M4)")
 
 xcodebuild build -quiet \
     -project InLevel.xcodeproj -scheme InLevel -configuration Debug \
@@ -69,5 +89,5 @@ capture_device() {
     active_device=
 }
 
-capture_device com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max iPhone 1320 2868
-capture_device com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5 iPad 2064 2752
+capture_device "$iphone" iPhone 1320 2868
+capture_device "$ipad" iPad 2064 2752
