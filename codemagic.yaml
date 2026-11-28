@@ -19,7 +19,7 @@ workflows:
       - name: Confirm In.Level source revision
         script: |
           set -e
-          echo "Expected revision: In.Level v26.11.24.07"
+          echo "Expected revision: In.Level v26.11.28.01"
           test -f "$CM_BUILD_DIR/InLevel/ContentView.swift"
           test -f "$CM_BUILD_DIR/InLevel/PrivacyInfo.xcprivacy"
           test -d "$CM_BUILD_DIR/InLevel.xcodeproj"

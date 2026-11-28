@@ -32,33 +32,32 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let wide = size.width > size.height && size.width >= 500 && size.height >= 300
+            let wide = size.width > size.height && size.width >= 500 && size.height >= (isPad ? 330 : 300)
             let expanded = min(size.width, size.height) >= 600
             let reading = motion.reading(for: mode)
             ZStack {
                 InTheme.background.ignoresSafeArea()
-                if full {
-                    InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette, full: true, wide: wide)
-                        .padding(10)
-                    Color.clear.ignoresSafeArea().contentShape(Rectangle()).onTapGesture { full = false }
-                        .accessibilityLabel("Exit Full Screen").accessibilityAddTraits(.isButton)
-                        .accessibilityAction { full = false }
-                } else if wide {
-                    HStack(spacing: 0) {
-                        VStack(spacing: 0) {
-                            header(expanded)
-                            Spacer(minLength: 6)
-                            bottom(true, expanded).padding(.horizontal, 10).padding(.bottom, 8)
-                        }.padding(.top, 4)
-                            .frame(width: size.width >= 1000 && size.height >= 650 ? min(max(size.width * 0.28, 330), 420) : min(max(size.width * 0.30, 250), 292))
-                        Rectangle().fill(.white.opacity(0.08)).frame(width: 1).padding(.vertical, 18)
-                        interactiveInstrument(reading).padding(5)
-                    }.padding(.horizontal, 8)
+                if wide {
+                    landscape(reading, size: size, expanded: expanded)
                 } else {
-                    let minHeight: CGFloat = tab == .colours ? 524 : 475
+                    // The instrument uses the whole window so hiding the status bar
+                    // and home indicator cannot change its layout proposal.
+                    let regularPhone = !isPad && size.height >= 780
+                    let topInset: CGFloat = isPad ? 28 : (regularPhone ? 64 : 24)
+                    let bottomInset: CGFloat = regularPhone ? 56 : (isPad ? 42 : 24)
+                    let minHeight = topInset + bottomInset + (tab == .colours ? 502 : 453)
                     if size.height < minHeight {
-                        ScrollView { portrait(reading, expanded).frame(height: minHeight) }
-                    } else { portrait(reading, expanded) }
+                        ScrollView {
+                            portrait(reading, expanded, topInset: topInset, bottomInset: bottomInset)
+                                .frame(height: minHeight)
+                        }
+                    } else {
+                        portrait(reading, expanded, topInset: topInset, bottomInset: bottomInset)
+                    }
+                }
+                if full {
+                    Color.clear.ignoresSafeArea().contentShape(Rectangle()).onTapGesture(perform: exitFullScreen)
+                        .accessibilityHidden(true)
                 }
                 if !full, let notice {
                     Text(notice).font(.caption.weight(.semibold)).padding(8)
@@ -67,25 +66,62 @@ struct ContentView: View {
                 }
             }
         }
+        .ignoresSafeArea(.container, edges: .vertical)
         .background(SceneProbe { motion.scene = $0 })
         .statusBarHidden(full).persistentSystemOverlays(full ? .hidden : .automatic)
         .onChange(of: tab) { _, next in if next != .colours { slope = next == .slope } }
         .onChange(of: mode) { _, _ in notice = nil }
     }
 
-    private func portrait(_ reading: LevelReading, _ expanded: Bool) -> some View {
-        VStack(spacing: 0) {
-            header(expanded)
-            interactiveInstrument(reading).padding(8)
-            bottom(false, expanded).frame(maxWidth: expanded ? 720 : 620).padding(.horizontal, 24).padding(.bottom, 22)
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    private func landscape(_ reading: LevelReading, size: CGSize, expanded: Bool) -> some View {
+        let columnWidth = size.width >= 1000 && size.height >= 650
+            ? min(max(size.width * 0.28, 330), 420)
+            : min(max(size.width * 0.30, 250), 292)
+        return HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                header(expanded)
+                Spacer(minLength: 6)
+                bottom(true, expanded).padding(.horizontal, 10).padding(.bottom, 8)
+            }
+            .padding(.top, isPad ? 28 : 4)
+            .padding(.bottom, 20)
+            .frame(width: columnWidth)
+            .modifier(ControlVisibility(hidden: full))
+
+            Rectangle().fill(.white.opacity(0.08)).frame(width: 1).padding(.vertical, 18)
+                .opacity(full ? 0 : 1)
+            interactiveInstrument(reading, wide: true)
+                .padding(.horizontal, 5)
+                .padding(.top, isPad ? 24 : 4)
+                .padding(.bottom, isPad ? 24 : 12)
         }
+        .padding(.horizontal, 8)
     }
 
-    private func interactiveInstrument(_ reading: LevelReading) -> some View {
-        InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette)
+    private func portrait(_ reading: LevelReading, _ expanded: Bool, topInset: CGFloat, bottomInset: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            header(expanded).modifier(ControlVisibility(hidden: full))
+            interactiveInstrument(reading, wide: false).padding(8)
+            bottom(false, expanded).frame(maxWidth: expanded ? 720 : 620).padding(.horizontal, 24)
+                .modifier(ControlVisibility(hidden: full))
+        }
+        .padding(.top, topInset)
+        .padding(.bottom, bottomInset)
+    }
+
+    private func interactiveInstrument(_ reading: LevelReading, wide: Bool) -> some View {
+        InstrumentStage(reading: reading, mode: mode, slope: slope, palette: palette, full: full, wide: wide)
             .contentShape(Rectangle())
-            .onTapGesture(perform: enterFullScreen)
-            .accessibilityAction(named: Text("Full Screen"), enterFullScreen)
+            .onTapGesture(perform: full ? exitFullScreen : enterFullScreen)
+            .accessibilityAction(named: Text(full ? "Exit Full Screen" : "Full Screen")) {
+                if full { exitFullScreen() } else { enterFullScreen() }
+            }
+    }
+
+    private func exitFullScreen() {
+        full = false
     }
 
     private func enterFullScreen() {
@@ -125,6 +161,17 @@ struct ContentView: View {
             try? await Task.sleep(for: .seconds(1.35))
             if !Task.isCancelled { notice = nil }
         }
+    }
+}
+
+private struct ControlVisibility: ViewModifier {
+    let hidden: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(hidden ? 0 : 1)
+            .allowsHitTesting(!hidden)
+            .accessibilityHidden(hidden)
     }
 }
 

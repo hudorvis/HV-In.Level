@@ -91,6 +91,7 @@ struct ReadingTextBlock: View {
     let palette: PaletteChoice
     let size: CGFloat
     let full: Bool
+    let compact: Bool
 
     var body: some View {
         // Reserve room for the tallest readout so text changes cannot move the circle.
@@ -112,18 +113,19 @@ struct ReadingTextBlock: View {
         let showStatus = !reading.status.isEmpty && (mode == .match || reading.direction == nil)
         let reference = mode == .match && !reservingSpace ? reading.referenceDegrees : nil
         let current = mode == .match && !reservingSpace && !full ? reading.currentDegrees : nil
+        let secondary = reservingSpace ? "0.000°" : (slope ? degrees : nil)
+        let status = reservingSpace ? "MATCH ERROR" : (showStatus ? reading.status.uppercased() : nil)
 
-        return VStack(spacing: 3) {
+        return VStack(spacing: compact ? 2 : 3) {
             Text(reservingSpace ? "0.000°" : (value ?? "—"))
                 .font(.system(size: size, weight: .light, design: .rounded)).foregroundStyle(palette.right)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.45)
-            if let secondary = reservingSpace ? "0.000°" : (slope ? degrees : nil) {
-                Text(secondary).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-            }
-            if reservingSpace || showStatus {
-                Text(reservingSpace ? "MATCH ERROR" : reading.status.uppercased())
-                    .font(.system(size: min(18, size * 0.32), weight: .semibold))
-                    .tracking(0.8).foregroundStyle(reading.valueDegrees == nil ? Color.secondary : palette.right)
+            if compact {
+                HStack(spacing: 10) {
+                    details(secondary, status)
+                }
+            } else {
+                details(secondary, status)
             }
             if reservingSpace || reference != nil || current != nil {
                 HStack(spacing: 12) {
@@ -136,5 +138,21 @@ struct ReadingTextBlock: View {
                 }.font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
         }.lineLimit(1).minimumScaleFactor(0.7)
+    }
+
+    @ViewBuilder
+    private func details(_ secondary: String?, _ status: String?) -> some View {
+        if let secondary {
+            Text(secondary)
+                .font(compact ? .caption : .subheadline)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        if let status {
+            Text(status)
+                .font(.system(size: min(18, size * 0.32), weight: .semibold))
+                .tracking(0.8)
+                .foregroundStyle(reading.valueDegrees == nil ? Color.secondary : palette.right)
+        }
     }
 }
